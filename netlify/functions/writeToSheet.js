@@ -23,6 +23,9 @@ exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: {
+        'Access-Control-Allow-Origin': '*' // Aggiunto
+      },
       body: JSON.stringify({ message: 'Metodo non consentito, usa POST' }),
     };
   }
@@ -34,6 +37,9 @@ exports.handler = async (event, context) => {
   if (!range || !value) {
     return {
       statusCode: 400,
+      headers: {
+        'Access-Control-Allow-Origin': '*' // Aggiunto
+      },
       body: JSON.stringify({ message: 'Mancano i parametri "range" o "value"' }),
     };
   }
@@ -64,6 +70,9 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*' // Aggiunto
+      },
       body: JSON.stringify({ message: `Scrittura completata per il range: ${range}` }),
     };
 
@@ -71,6 +80,9 @@ exports.handler = async (event, context) => {
     console.error('Errore API Sheets:', error);
     return {
       statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*' // Aggiunto
+      },
       body: JSON.stringify({ message: 'Errore durante la scrittura sul foglio: ' + error.message }),
     };
   }
