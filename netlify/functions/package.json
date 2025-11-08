@@ -1,0 +1,7 @@
+{
+  "name": "scrivi-su-foglio-app-netlify",
+  "version": "1.0.0",
+  "dependencies": {
+    "googleapis": "^128.0.0"
+  }
+}
