@@ -1,0 +1,7 @@
+{
+  "name": "nome-progetto-netlify",
+  "version": "1.0.0",
+  "dependencies": {
+    "googleapis": "^128.0.0"
+  }
+}
