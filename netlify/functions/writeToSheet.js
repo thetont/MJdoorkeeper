@@ -19,6 +19,21 @@ const scopes = ['https://www.googleapis.com/auth/spreadsheets'];
 // Funzione principale che Netlify Functions esegue
 exports.handler = async (event, context) => {
 
+  // --- INIZIO GESTIONE RICHIESTA OPTIONS/PREFLIGHT ---
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204, // 204 No Content è la risposta standard per OPTIONS
+      headers: {
+        'Access-Control-Allow-Origin': '*', // Consenti l'origine della tua estensione
+        'Access-Control-Allow-Methods': 'POST, OPTIONS', // Specifica i metodi consentiti
+        'Access-Control-Allow-Headers': 'Content-Type', // Specifica gli header consentiti
+        'Access-Control-Max-Age': '86400', // Memorizza nella cache questa risposta OPTIONS per 24 ore
+      },
+      body: '' // Il corpo deve essere vuoto per 204
+    };
+  }
+  // --- FINE GESTIONE RICHIESTA OPTIONS/PREFLIGHT ---
+
   // Assicurati che sia una richiesta POST
   if (event.httpMethod !== 'POST') {
     return {
