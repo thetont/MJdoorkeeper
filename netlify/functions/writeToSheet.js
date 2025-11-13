@@ -55,9 +55,9 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Safely normalize private key newlines. The key may contain either literal '\\n' sequences or real newlines.
+  // Safely normalize private key newlines. The key may contain either literal '\n' sequences or real newlines.
   const PRIVATE_KEY = typeof PRIVATE_KEY_RAW === 'string'
-    ? PRIVATE_KEY_RAW.replace(/\n/g, '\n')
+    ? PRIVATE_KEY_RAW.replace(/\\n/g, '\n')
     : PRIVATE_KEY_RAW;
 
   // Analizza il corpo della richiesta JSON inviata dall'estensione
