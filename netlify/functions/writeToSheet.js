@@ -11,7 +11,7 @@ const { google } = require('googleapis');
 
 // Usa process.env per accedere alle variabili d'ambiente configurate su Netlify
 const CLIENT_EMAIL = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
-const PRIVATE_KEY = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
+const PRIVATE_KEY_RAW = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
 const scopes = ['https://www.googleapis.com/auth/spreadsheets'];
@@ -45,11 +45,44 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Validate environment variables early to avoid uncaught exceptions
+  if (!CLIENT_EMAIL || !PRIVATE_KEY_RAW || !SPREADSHEET_ID) {
+    console.error('Environment variable missing. Check GOOGLE_SHEETS_CLIENT_EMAIL, GOOGLE_SHEETS_PRIVATE_KEY, GOOGLE_SHEETS_SPREADSHEET_ID.');
+    return {
+      statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ message: 'Server misconfiguration: missing Google Sheets credentials. Controlla le variabili d\'ambiente.' }),
+    };
+  }
+
+  // Safely normalize private key newlines. The key may contain either literal '\\n' sequences or real newlines.
+  const PRIVATE_KEY = typeof PRIVATE_KEY_RAW === 'string'
+    ? PRIVATE_KEY_RAW.replace(/\n/g, '\n')
+    : PRIVATE_KEY_RAW;
+
   // Analizza il corpo della richiesta JSON inviata dall'estensione
-  const data = JSON.parse(event.body);
+  let data;
+  try {
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ message: 'Request body vuoto' }),
+      };
+    }
+    data = JSON.parse(event.body);
+  } catch (parseErr) {
+    console.error('Failed to parse JSON body:', parseErr);
+    return {
+      statusCode: 400,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ message: 'JSON non valido nel body della richiesta', details: parseErr.message }),
+    };
+  }
+
   const { range, value } = data;
 
-  if (!range || !value) {
+  if (!range || (typeof value === 'undefined' || value === null)) {
     return {
       statusCode: 400,
       headers: {
@@ -64,7 +97,7 @@ exports.handler = async (event, context) => {
     const jwtClient = new google.auth.JWT(
       CLIENT_EMAIL,
       null,
-      PRIVATE_KEY.replace(/\\n/g, '\n'), // Netlify potrebbe richiedere questa sostituzione per le interruzioni di riga
+      PRIVATE_KEY,
       scopes
     );
 
@@ -76,12 +109,14 @@ exports.handler = async (event, context) => {
     };
 
     // Esegue l'aggiornamento sul foglio di calcolo
-    await sheets.spreadsheets.values.update({
+    const res = await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
       range: range,
       valueInputOption: 'USER_ENTERED',
       resource: resource,
     });
+
+    console.info('Sheets API update result:', res.status, res.statusText);
 
     return {
       statusCode: 200,
@@ -92,13 +127,15 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
+    // Log full error server-side (avoid printing secrets)
     console.error('Errore API Sheets:', error);
+    const clientMessage = (error && error.message) ? error.message : 'Errore sconosciuto';
     return {
       statusCode: 500,
       headers: {
         'Access-Control-Allow-Origin': '*' // Aggiunto
       },
-      body: JSON.stringify({ message: 'Errore durante la scrittura sul foglio: ' + error.message }),
+      body: JSON.stringify({ message: 'Errore durante la scrittura sul foglio', details: clientMessage }),
     };
   }
 };
